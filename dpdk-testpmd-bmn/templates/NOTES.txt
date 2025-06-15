@@ -1,0 +1,38 @@
+1. Get the application status by running:
+   kubectl get pods -l "app.kubernetes.io/name={{ include "dpdk-testpmd-bmn.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+
+2. Check SR-IOV Device Plugin configuration:
+   kubectl get configmap {{ .Values.sriovDevicePlugin.configMap.name }} -n {{ .Values.sriovDevicePlugin.namespace }}
+
+3. Verify Network Attachment Definitions:
+   kubectl get network-attachment-definitions
+
+4. Check node resources for SR-IOV devices:
+   kubectl describe nodes
+
+5. To access a DPDK pod for testing:
+   kubectl exec -it <pod-name> -- /bin/bash
+
+6. Example DPDK TestPMD commands (run inside the pod):
+   
+   For TX pod:
+   export KUBEPOD_SLICE=$(cut -d: -f3 /proc/self/cgroup); export CPU=$(cat /sys/fs/cgroup$KUBEPOD_SLICE/cpuset.cpus.effective)
+   export PCI=$(ethtool -i net1 | grep bus-info | awk '{print $2}')
+   export IP=$(ifconfig net1 | grep inet | awk '{print $2}')
+   
+   ./build/app/dpdk-testpmd -l ${CPU} -n 6 -a ${PCI} --file-prefix dpdk-test --socket-mem=4096,4096 --proc-type=auto -- --mbcache=512 --burst=64 --nb-cores=32 --rxq=24 --txq=24 -i --rxd=8192 --txd=8192 --forward-mode=txonly --txonly-multi-flow --tx-ip=${IP},169.30.1.5
+
+   For RX pod:
+   export KUBEPOD_SLICE=$(cut -d: -f3 /proc/self/cgroup); export CPU=$(cat /sys/fs/cgroup$KUBEPOD_SLICE/cpuset.cpus.effective)
+   export PCI=$(ethtool -i net1 | grep bus-info | awk '{print $2}')
+   
+   ./build/app/dpdk-testpmd -l ${CPU} -a ${PCI} --file-prefix dpdk-test -- --nb-cores=32 --rxq=24 --txq=24 -i --forward-mode=rxonly --stats-period 5
+
+7. Monitor pod resources and performance:
+   kubectl top pods
+   kubectl describe pod <pod-name>
+
+WARNING: This chart deploys pods with elevated privileges required for DPDK operations.
+Ensure your cluster security policies allow privileged containers and the necessary capabilities.
+
+For more information about DPDK TestPMD, visit: https://doc.dpdk.org/guides/testpmd_app_ug/

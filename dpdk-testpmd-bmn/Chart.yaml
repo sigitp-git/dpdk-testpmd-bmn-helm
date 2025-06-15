@@ -1,0 +1,21 @@
+apiVersion: v2
+name: dpdk-testpmd-bmn
+description: A Helm chart for DPDK TestPMD on AWS Bare Metal Nodes with SR-IOV
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - dpdk
+  - sriov
+  - networking
+  - performance
+  - aws
+  - bare-metal
+home: https://github.com/your-org/dpdk-testpmd-bmn-helm
+sources:
+  - https://github.com/your-org/dpdk-testpmd-bmn-helm
+maintainers:
+  - name: DPDK Team
+    email: dpdk-team@example.com
+annotations:
+  category: Networking

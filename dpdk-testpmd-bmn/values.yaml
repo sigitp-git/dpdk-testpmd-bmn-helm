@@ -1,0 +1,171 @@
+# Default values for dpdk-testpmd-bmn
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  # Image registry configuration
+  imageRegistry: "291615555612.dkr.ecr.us-east-1.amazonaws.com"
+  imagePullSecrets: []
+  
+# SR-IOV Device Plugin Configuration
+sriovDevicePlugin:
+  enabled: true
+  namespace: kube-system
+  configMap:
+    name: sriovdp-config
+    resourceList:
+      - resourceName: "bmn-mlx-sriov-pf1"
+        resourcePrefix: "amazon.com"
+        vendors: ["15b3"]
+        devices: ["101e"]
+        drivers: ["mlx5_core"]
+        rootDevices: ["0000:05:00.0"]
+      - resourceName: "bmn-mlx-sriov-pf2"
+        resourcePrefix: "amazon.com"
+        vendors: ["15b3"]
+        devices: ["101e"]
+        drivers: ["mlx5_core"]
+        rootDevices: ["0000:05:00.1"]
+      - resourceName: "bmn-mlx-sriov-pf3"
+        resourcePrefix: "amazon.com"
+        vendors: ["15b3"]
+        devices: ["101e"]
+        drivers: ["mlx5_core"]
+        rootDevices: ["0001:05:00.0"]
+      - resourceName: "bmn-mlx-sriov-pf4"
+        resourcePrefix: "amazon.com"
+        vendors: ["15b3"]
+        devices: ["101e"]
+        drivers: ["mlx5_core"]
+        rootDevices: ["0001:05:00.1"]
+
+# Network Attachment Definitions
+networkAttachmentDefinitions:
+  enabled: true
+  networks:
+    - name: "n3-1001-numa1p0-pf3"
+      resourceName: "amazon.com/bmn-mlx-sriov-pf3"
+      vlan: 1001
+      ipam:
+        type: "whereabouts"
+        range: "169.30.1.0/24"
+        exclude:
+          - "169.30.1.1/32"
+          - "169.30.1.254/32"
+    - name: "n3-1002-numa1p1-pf4"
+      resourceName: "amazon.com/bmn-mlx-sriov-pf4"
+      vlan: 1002
+      ipam:
+        type: "whereabouts"
+        range: "169.30.2.0/24"
+        exclude:
+          - "169.30.2.1/32"
+          - "169.30.2.254/32"
+
+# DPDK TestPMD Pods Configuration
+dpdkPods:
+  enabled: true
+  image:
+    repository: "sigitp-ecr"
+    tag: "ubuntu-mlnx-dpdk-amd64"
+    pullPolicy: IfNotPresent
+  
+  # Security Context - Following security best practices
+  securityContext:
+    # Required for DPDK operations but restricted
+    privileged: false
+    allowPrivilegeEscalation: true
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+    runAsUser: 0
+    capabilities:
+      add:
+        - "CAP_NET_RAW"
+        - "NET_ADMIN"
+        - "SYS_TIME"
+      drop:
+        - "ALL"
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Resource configuration
+  resources:
+    requests:
+      cpu: "33"
+      memory: "32Gi"
+      hugepages-1Gi: "8Gi"
+    limits:
+      cpu: "33"
+      memory: "32Gi"
+      hugepages-1Gi: "8Gi"
+
+  # Pod configuration
+  restartPolicy: Always
+  terminationGracePeriodSeconds: 30
+  
+  # Hugepages volume configuration
+  hugepages:
+    enabled: true
+    medium: "HugePages"
+    mountPath: "/hugepages"
+
+  # Node configuration
+  nodes:
+    - name: "node1"
+      hostname: "ip-10-0-58-16.ec2.internal"
+      pods:
+        tx:
+          enabled: true
+          name: "mlnx-dpdk-1001-1002-node1-tx"
+          resources:
+            requests:
+              cpu: "33"
+              memory: "32Gi"
+              hugepages-1Gi: "8Gi"
+              amazon.com/bmn-mlx-sriov-pf3: "1"
+              amazon.com/bmn-mlx-sriov-pf4: "1"
+            limits:
+              cpu: "33"
+              memory: "32Gi"
+              hugepages-1Gi: "8Gi"
+              amazon.com/bmn-mlx-sriov-pf3: "1"
+              amazon.com/bmn-mlx-sriov-pf4: "1"
+        rx:
+          enabled: true
+          name: "mlnx-dpdk-1001-1002-node1-rx"
+          resources:
+            requests:
+              cpu: "33"
+              memory: "32Gi"
+              hugepages-1Gi: "8Gi"
+              amazon.com/bmn-mlx-sriov-pf3: "1"
+              amazon.com/bmn-mlx-sriov-pf4: "1"
+            limits:
+              cpu: "33"
+              memory: "32Gi"
+              hugepages-1Gi: "8Gi"
+              amazon.com/bmn-mlx-sriov-pf3: "1"
+              amazon.com/bmn-mlx-sriov-pf4: "1"
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+  automountServiceAccountToken: false
+
+# Labels and annotations
+commonLabels:
+  app.kubernetes.io/name: dpdk-testpmd-bmn
+  app.kubernetes.io/component: networking
+  app.kubernetes.io/part-of: dpdk-testpmd
+
+commonAnnotations: {}
+
+# Monitoring and observability
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+  prometheusRule:
+    enabled: false

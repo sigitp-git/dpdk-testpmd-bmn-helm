@@ -1,0 +1,27 @@
+{{- if .Values.networkAttachmentDefinitions.enabled }}
+{{- range .Values.networkAttachmentDefinitions.networks }}
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "dpdk-testpmd-bmn.labels" $ | nindent 4 }}
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: {{ .resourceName }}
+spec:
+  config: |
+    {
+      "type": "sriov",
+      "cniVersion": "0.3.1",
+      "name": "sriov-network",
+      "vlan": {{ .vlan }},
+      "logLevel": "info",
+      "ipam": {
+        "type": {{ .ipam.type | quote }},
+        "range": {{ .ipam.range | quote }},
+        "exclude": {{ .ipam.exclude | toJson }}
+      }
+    }
+{{- end }}
+{{- end }}

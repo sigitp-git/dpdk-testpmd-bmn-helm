@@ -1,0 +1,91 @@
+{{- if .Values.dpdkPods.enabled }}
+{{- range .Values.dpdkPods.nodes }}
+{{- $node := . }}
+{{- if .pods.tx.enabled }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .pods.tx.name }}
+  labels:
+    {{- include "dpdk-testpmd-bmn.labels" $ | nindent 4 }}
+    app.kubernetes.io/instance: {{ .pods.tx.name }}
+    dpdk.testpmd/role: "transmitter"
+    dpdk.testpmd/node: {{ .name }}
+  annotations:
+    k8s.v1.cni.cncf.io/networks: {{ include "dpdk-testpmd-bmn.networkList" $ }}
+spec:
+  serviceAccountName: {{ include "dpdk-testpmd-bmn.serviceAccountName" $ }}
+  restartPolicy: {{ $.Values.dpdkPods.restartPolicy }}
+  terminationGracePeriodSeconds: {{ $.Values.dpdkPods.terminationGracePeriodSeconds }}
+  containers:
+  - name: ubuntu-mlnx-dpdk
+    image: {{ include "dpdk-testpmd-bmn.image" $ }}
+    imagePullPolicy: {{ $.Values.dpdkPods.image.pullPolicy }}
+    securityContext:
+      privileged: true
+      capabilities:
+        add: ["CAP_NET_RAW", "NET_ADMIN", "SYS_TIME"]
+    command: ["/bin/bash", "-c", "--"]
+    args: ["while true; do sleep 300000; done;"]
+    resources:
+      {{- toYaml .pods.tx.resources | nindent 6 }}
+    volumeMounts:
+    {{- if $.Values.dpdkPods.hugepages.enabled }}
+    - name: hugepage
+      mountPath: {{ $.Values.dpdkPods.hugepages.mountPath }}
+    {{- end }}
+  volumes:
+  {{- if $.Values.dpdkPods.hugepages.enabled }}
+  - name: hugepage
+    emptyDir:
+      medium: {{ $.Values.dpdkPods.hugepages.medium }}
+  {{- end }}
+  nodeSelector:
+    kubernetes.io/hostname: {{ .hostname }}
+{{- end }}
+{{- if .pods.rx.enabled }}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ .pods.rx.name }}
+  labels:
+    {{- include "dpdk-testpmd-bmn.labels" $ | nindent 4 }}
+    app.kubernetes.io/instance: {{ .pods.rx.name }}
+    dpdk.testpmd/role: "receiver"
+    dpdk.testpmd/node: {{ .name }}
+  annotations:
+    k8s.v1.cni.cncf.io/networks: {{ include "dpdk-testpmd-bmn.networkList" $ }}
+spec:
+  serviceAccountName: {{ include "dpdk-testpmd-bmn.serviceAccountName" $ }}
+  restartPolicy: {{ $.Values.dpdkPods.restartPolicy }}
+  terminationGracePeriodSeconds: {{ $.Values.dpdkPods.terminationGracePeriodSeconds }}
+  containers:
+  - name: ubuntu-mlnx-dpdk
+    image: {{ include "dpdk-testpmd-bmn.image" $ }}
+    imagePullPolicy: {{ $.Values.dpdkPods.image.pullPolicy }}
+    securityContext:
+      privileged: true
+      capabilities:
+        add: ["CAP_NET_RAW", "NET_ADMIN", "SYS_TIME"]
+    command: ["/bin/bash", "-c", "--"]
+    args: ["while true; do sleep 300000; done;"]
+    resources:
+      {{- toYaml .pods.rx.resources | nindent 6 }}
+    volumeMounts:
+    {{- if $.Values.dpdkPods.hugepages.enabled }}
+    - name: hugepage
+      mountPath: {{ $.Values.dpdkPods.hugepages.mountPath }}
+    {{- end }}
+  volumes:
+  {{- if $.Values.dpdkPods.hugepages.enabled }}
+  - name: hugepage
+    emptyDir:
+      medium: {{ $.Values.dpdkPods.hugepages.medium }}
+  {{- end }}
+  nodeSelector:
+    kubernetes.io/hostname: {{ .hostname }}
+{{- end }}
+{{- end }}
+{{- end }}

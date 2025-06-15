@@ -1,0 +1,28 @@
+{{- if .Values.sriovDevicePlugin.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.sriovDevicePlugin.configMap.name }}
+  namespace: {{ .Values.sriovDevicePlugin.namespace }}
+  labels:
+    {{- include "dpdk-testpmd-bmn.labels" . | nindent 4 }}
+data:
+  config.json: |
+    {
+        "resourceList": [
+        {{- range $index, $resource := .Values.sriovDevicePlugin.configMap.resourceList }}
+        {{- if $index }},{{ end }}
+            {
+                "resourceName": {{ $resource.resourceName | quote }},
+                "resourcePrefix": {{ $resource.resourcePrefix | quote }},
+                "selectors": {
+                    "vendors": {{ $resource.vendors | toJson }},
+                    "devices": {{ $resource.devices | toJson }},
+                    "drivers": {{ $resource.drivers | toJson }},
+                    "rootDevices": {{ $resource.rootDevices | toJson }}
+                }
+            }
+        {{- end }}
+        ]
+    }
+{{- end }}
