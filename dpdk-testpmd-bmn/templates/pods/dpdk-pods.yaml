@@ -1,7 +1,7 @@
 {{- if .Values.dpdkPods.enabled }}
 {{- range .Values.dpdkPods.nodes }}
 {{- $node := . }}
-{{- if .pods.tx.enabled }}
+{{- if and .pods .pods.tx .pods.tx.enabled }}
 ---
 apiVersion: v1
 kind: Pod
@@ -44,7 +44,7 @@ spec:
   nodeSelector:
     kubernetes.io/hostname: {{ .hostname }}
 {{- end }}
-{{- if .pods.rx.enabled }}
+{{- if and .pods .pods.rx .pods.rx.enabled }}
 ---
 apiVersion: v1
 kind: Pod
